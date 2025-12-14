@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Histórico de Localização</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    padding: 20px;
+}
+button {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+button:hover {
+    background: #0056b3;
+}
+#historico {
+    margin-top: 20px;
+}
+.item {
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.limpar {
+    background: #dc3545;
+}
+</style>
+</head>
+<body>
+
+<button onclick="obterLocalizacao()">📍 Saber localização</button>
+<button class="limpar" onclick="limparHistorico()">🗑 Limpar histórico</button>
+
+<div id="historico"></div>
+
+<script>
+function obterLocalizacao() {
+    if (!navigator.geolocation) {
+        alert("Geolocalização não suportada.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+        );
+        const data = await res.json();
+
+        const endereco = {
+            rua: data.address.road || "Não informado",
+            cidade: data.address.city || data.address.town || "Não informado",
+            estado: data.address.state || "Não informado",
+            data: new Date().toLocaleString()
+        };
+
+        salvarHistorico(endereco);
+        mostrarHistorico();
+    }, () => {
+        alert("Permissão negada ou GPS desligado.");
+    });
+}
+
+function salvarHistorico(endereco) {
+    let historico = JSON.parse(localStorage.getItem("historicoLocalizacao")) || [];
+    historico.unshift(endereco);
+    localStorage.setItem("historicoLocalizacao", JSON.stringify(historico));
+}
+
+function mostrarHistorico() {
+    const div = document.getElementById("historico");
+    const historico = JSON.parse(localStorage.getItem("historicoLocalizacao")) || [];
+    div.innerHTML = "<h3>📜 Histórico</h3>";
+
+    historico.forEach(item => {
+        div.innerHTML += `
+            <div class="item">
+                <b>Rua:</b> ${item.rua}<br>
+                <b>Cidade:</b> ${item.cidade}<br>
+                <b>Estado:</b> ${item.estado}<br>
+                <b>Data:</b> ${item.data}
+            </div>
+        `;
+    });
+}
+
+function limparHistorico() {
+    localStorage.removeItem("historicoLocalizacao");
+    mostrarHistorico();
+}
+
+mostrarHistorico();
+</script>
+
+</body>
+</html>
